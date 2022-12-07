@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace nsgFunc
+﻿namespace nsgFunc
 {
     public class BlobDetails
     {

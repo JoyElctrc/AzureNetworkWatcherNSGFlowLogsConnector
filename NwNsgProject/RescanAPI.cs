@@ -1,16 +1,17 @@
-using System;
-using System.Threading.Tasks;
+using Azure.Data.Tables;
+using Azure.Storage.Blobs.Models;
+using Azure.Storage.Blobs.Specialized;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Microsoft.Azure.Storage.Blob;
-using Microsoft.Azure.Cosmos.Table;
+using System;
+using System.Threading.Tasks;
 
 namespace nsgFunc
 {
-  public static class RescanAPI
+    public static class RescanAPI
     {
         // https://<APP_NAME>.azurewebsites.net/api/rescan/2/17/8
         //
@@ -56,13 +57,22 @@ namespace nsgFunc
 
             try
             {
-                CloudTable CheckpointTable = await checkpointsBinder.BindAsync<CloudTable>(tableAttributes);
-                TableOperation getOperation = TableOperation.Retrieve<Checkpoint>(blobDetails.GetPartitionKey(), blobDetails.GetRowKey());
-                TableResult result = await CheckpointTable.ExecuteAsync(getOperation);
-                Checkpoint c = (Checkpoint)result.Result;
+                TableClient CheckpointTable = await checkpointsBinder.BindAsync<TableClient>(tableAttributes);
+
+                //Azure.NullableResponse<nsgFunc.Checkpoint> checkpointtest = CheckpointTable.GetEntityIfExistsAsync<Checkpoint>(blobDetails.GetPartitionKey(), blobDetails.GetRowKey()).Result;
+
+                Checkpoint c = CheckpointTable.GetEntityAsync<Checkpoint>(blobDetails.GetPartitionKey(), blobDetails.GetRowKey()).Result;
+
+                //TableOperation getOperation = TableOperation.Retrieve<Checkpoint>(blobDetails.GetPartitionKey(), blobDetails.GetRowKey());
+                //TableResult result = await CheckpointTable.ExecuteAsync(getOperation);
+                //Checkpoint c = (Checkpoint)result.Result;
+                
                 c.CheckpointIndex = 1;
-                TableOperation putOperation = TableOperation.InsertOrReplace(c);
-                await CheckpointTable.ExecuteAsync(putOperation);
+
+                CheckpointTable.UpsertEntityAsync(c).Wait();
+
+                //TableOperation putOperation = TableOperation.InsertOrReplace(c);
+                //await CheckpointTable.ExecuteAsync(putOperation);
             }
             catch (Exception ex)
             {
@@ -78,9 +88,13 @@ namespace nsgFunc
 
             try
             {
-                CloudBlockBlob blob = await nsgDataBlobBinder.BindAsync<CloudBlockBlob>(attributes);
-                await blob.FetchAttributesAsync();
-                var metadata = blob.Metadata;
+                BlockBlobClient blob = await nsgDataBlobBinder.BindAsync<BlockBlobClient>(attributes);
+
+                BlobProperties props = await blob.GetPropertiesAsync();
+
+                //await blob.FetchAttributesAsync();
+
+                var metadata = props.Metadata;
                 if (metadata.ContainsKey("rescan"))
                 {
                     int numberRescans = Convert.ToInt32(metadata["rescan"]);
@@ -90,7 +104,9 @@ namespace nsgFunc
                 {
                     metadata.Add("rescan", "1");
                 }
-                await blob.SetMetadataAsync();
+
+                await blob.SetMetadataAsync(metadata);
+                //await blob.SetMetadataAsync();
             }
             catch (Exception ex)
             {

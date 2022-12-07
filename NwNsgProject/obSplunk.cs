@@ -1,5 +1,4 @@
-﻿using Microsoft.Azure.WebJobs;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System;
 using System.Net;

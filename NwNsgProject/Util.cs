@@ -1,6 +1,6 @@
 ﻿using Microsoft.Azure.WebJobs;
+using Azure.Storage.Blobs.Specialized;
 using Microsoft.Extensions.Logging;
-using Microsoft.Azure.Storage.Blob;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -8,6 +8,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Formatting;
+using System.IO;
 
 namespace nsgFunc
 {
@@ -315,8 +316,13 @@ namespace nsgFunc
                     new StorageAccountAttribute("cefLogAccount")
                 };
 
-                CloudBlockBlob blob = await binder.BindAsync<CloudBlockBlob>(attributes);
-                await blob.UploadFromByteArrayAsync(transmission, 0, transmission.Length);
+                MemoryStream ms = new MemoryStream();
+
+                ms.Write(transmission, 0, transmission.Length);
+
+                BlockBlobClient blob = binder.BindAsync<BlockBlobClient>(attributes).Result;
+                await blob.UploadAsync(ms);
+                //await blob.UploadFromByteArrayAsync(transmission, 0, transmission.Length);
 
                 transmission = new Byte[] { };
             }
@@ -343,8 +349,14 @@ namespace nsgFunc
                     new StorageAccountAttribute("cefLogAccount")
                 };
 
-                CloudBlockBlob blob = await errorRecordBinder.BindAsync<CloudBlockBlob>(attributes);
-                await blob.UploadFromByteArrayAsync(transmission, 0, transmission.Length);
+                MemoryStream ms = new MemoryStream();
+
+                ms.Write(transmission, 0, transmission.Length);
+
+                BlockBlobClient blob = await errorRecordBinder.BindAsync<BlockBlobClient>(attributes);
+                await blob.UploadAsync(ms);
+
+                //await blob.UploadFromByteArrayAsync(transmission, 0, transmission.Length);
 
                 transmission = new Byte[] { };
             }

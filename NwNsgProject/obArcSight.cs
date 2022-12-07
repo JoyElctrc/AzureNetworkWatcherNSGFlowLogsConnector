@@ -1,8 +1,9 @@
-﻿using Microsoft.Azure.WebJobs;
+﻿using Azure.Storage.Blobs.Specialized;
+using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Logging;
-using Microsoft.Azure.Storage.Blob;
 using System;
 using System.Buffers;
+using System.IO;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 
@@ -49,6 +50,10 @@ namespace nsgFunc
                     sw.Start();
                     await stream.WriteAsync(tuple.Item1, 0, tuple.Item2);
 
+                    MemoryStream ms = new MemoryStream();
+
+                    ms.Write(tuple.Item1, 0, tuple.Item2);             
+
                     if (logOutgoingCEFflag) { 
                         Guid guid = Guid.NewGuid();
                         var attributes = new Attribute[]
@@ -57,8 +62,10 @@ namespace nsgFunc
                                 new StorageAccountAttribute("cefLogAccount")
                         };
 
-                        CloudBlockBlob blob = await cefLogBinder.BindAsync<CloudBlockBlob>(attributes);
-                        await blob.UploadFromByteArrayAsync(tuple.Item1, 0, tuple.Item2);
+                        BlockBlobClient blob = cefLogBinder.BindAsync<BlockBlobClient>(attributes).Result;
+                        await blob.UploadAsync(ms);
+
+                        //await blob.UploadFromByteArrayAsync(tuple.Item1, 0, tuple.Item2);
                     }
 
                     sw.Stop();
