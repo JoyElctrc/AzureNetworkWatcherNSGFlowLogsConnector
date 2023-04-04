@@ -14,7 +14,8 @@ class SplunkEventMessage
 
     public SplunkEventMessage (DenormalizedRecord splunkEvent)
     {
-        sourcetype = "amdl:nsg:flowlogs";
+        //sourcetype = "amdl:nsg:flowlogs";
+        sourcetype = "mscs:nsg:flow";
         time = unixTime(splunkEvent.time);
         @event = splunkEvent;
     }
